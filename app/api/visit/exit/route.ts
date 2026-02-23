@@ -24,6 +24,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 이미 퇴장했는지 확인
+    if (visit.exitTime) {
+      return NextResponse.json(
+        { error: "이미 퇴장한 기록입니다" },
+        { status: 400 }
+      );
+    }
+
     // 퇴장 처리 (트랜잭션)
     const [updatedVisit] = await prisma.$transaction([
       prisma.visit.update({
@@ -32,9 +40,21 @@ export async function POST(req: NextRequest) {
       }),
       prisma.zone.update({
         where: { id: visit.zoneId },
-        data: { currentCount: { decrement: 1 } },
+        data: {
+          currentCount: {
+            decrement: 1,
+          },
+        },
       }),
     ]);
+
+    // 음수 방지 - 0 미만이면 0으로 리셋
+    if (visit.zone.currentCount - 1 < 0) {
+      await prisma.zone.update({
+        where: { id: visit.zoneId },
+        data: { currentCount: 0 },
+      });
+    }
 
     return NextResponse.json(updatedVisit);
   } catch (error) {
