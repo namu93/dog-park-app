@@ -25,22 +25,12 @@ export default function ParkZonePage() {
 
   useEffect(() => {
     if (session) {
+      checkAndAutoExit();
       fetchZoneInfo();
       fetchDogs();
       checkActiveVisit();
     }
   }, [session, zoneCode]);
-
-  useEffect(() => {
-  if (session) {
-    // 자동 퇴장 체크 먼저 실행
-    checkAndAutoExit();
-    
-    fetchZoneInfo();
-    fetchDogs();
-    checkActiveVisit();
-  }
-}, [session, zoneCode]);
 
 // 자동 퇴장 체크 함수 추가
 const checkAndAutoExit = async () => {

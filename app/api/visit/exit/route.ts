@@ -32,29 +32,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 퇴장 처리 (트랜잭션)
-    const [updatedVisit] = await prisma.$transaction([
-      prisma.visit.update({
+    // 퇴장 처리 (인터랙티브 트랜잭션으로 음수 방지)
+    const updatedVisit = await prisma.$transaction(async (tx) => {
+      const result = await tx.visit.update({
         where: { id: visitId },
         data: { exitTime: new Date() },
-      }),
-      prisma.zone.update({
-        where: { id: visit.zoneId },
-        data: {
-          currentCount: {
-            decrement: 1,
-          },
-        },
-      }),
-    ]);
-
-    // 음수 방지 - 0 미만이면 0으로 리셋
-    if (visit.zone.currentCount - 1 < 0) {
-      await prisma.zone.update({
-        where: { id: visit.zoneId },
-        data: { currentCount: 0 },
       });
-    }
+
+      const updatedZone = await tx.zone.update({
+        where: { id: visit.zoneId },
+        data: { currentCount: { decrement: 1 } },
+      });
+
+      if (updatedZone.currentCount < 0) {
+        await tx.zone.update({
+          where: { id: visit.zoneId },
+          data: { currentCount: 0 },
+        });
+      }
+
+      return result;
+    });
 
     return NextResponse.json(updatedVisit);
   } catch (error) {

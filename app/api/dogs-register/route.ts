@@ -17,6 +17,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, breed, gender, size, birthDate, dogRegNo } = body;
 
+    if (!name || !breed || !gender || !size) {
+      return NextResponse.json(
+        { error: "이름, 견종, 성별, 크기는 필수 항목입니다" },
+        { status: 400 }
+      );
+    }
+
     const dog = await prisma.dog.create({
       data: {
         userId: session.user.id,

@@ -13,8 +13,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const zoneCode = searchParams.get("zoneCode");
 
+    if (!zoneCode) {
+      return NextResponse.json({ error: "zoneCode가 필요합니다" }, { status: 400 });
+    }
+
     const zone = await prisma.zone.findUnique({
-      where: { qrCode: zoneCode! },
+      where: { qrCode: zoneCode },
     });
 
     if (!zone) {
